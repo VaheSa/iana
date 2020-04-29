@@ -8,7 +8,7 @@ def get_tld_whois(tld_href):
     resp = req.get(tld_href)
     soup = BeautifulSoup(resp.content, 'lxml')
     b_tags = soup.findAll("b")
-    host = "N/A"
+    host = None
     for b_tag in b_tags:
         if "WHOIS Server" in b_tag.text:
             host = b_tag.next_element.next_element.replace(" ", "").replace("\n", "").replace("\r", "")
@@ -22,13 +22,17 @@ def get_json(url):
 
     now = datetime.datetime.now()
     to_json = {"_": {"last_update": now.strftime("%Y-%m-%d")}}
+    x = 0
     for tld_tr in tld_table.find_all("tr"):
+        x += 1
         tld_info = {}
         tld_tds = []
         for tld_td in tld_tr.find_all("td"):
             tld_tds.append(tld_td)
         tld_name = tld_tds[0]
-        tld_clear_name = tld_name.text.replace('.', '').replace("\n", "").replace("\r", "")
+        tld = tld_name.find('a')['href'].replace(" ", "").replace("/domains/root/db/", "").replace(".html", "")
+        print(str(x) + " --LOG-- INSERT -- " + tld)
+        tld_clear_name = tld_name.text.replace("\n", "").replace("\r", "")
         tld_type = tld_tds[1]
         tld_manager = tld_tds[2]
         tld_href = url+"/"+tld_clear_name+".html"
@@ -36,12 +40,14 @@ def get_json(url):
         tld_info["tld_type"] = tld_type.text
         tld_info["tld_manager"] = tld_manager.text
         tld_info["host"] = get_tld_whois(tld_href)
-        to_json.update({tld_clear_name: tld_info})
-        # For a quick check. Мake a comment after checking!
+        if tld_info["host"] is None:
+            continue
+        to_json.update({tld: tld_info})
+        # # For a quick check. Мake a comment after checking!
         # if tld_clear_name == "accountants":
         #     break
-        # Мake a comment to here after checking
-    with open('tld_info.json', 'w') as json_file:
+        # # Мake a comment to here after checking
+    with open('tlds.json', 'w') as json_file:
         json.dump(to_json, json_file)
 
 
